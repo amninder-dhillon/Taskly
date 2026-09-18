@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"text/tabwriter"
 )
 
@@ -25,6 +26,14 @@ func printTasks() error {
 	}
 
 	return w.Flush()
+}
+
+func parseTaskID(value string) (int, error) {
+	id, err := strconv.Atoi(value)
+	if err != nil || id < 1 {
+		return 0, fmt.Errorf("invalid task ID %q", value)
+	}
+	return id, nil
 }
 
 func main() {
@@ -58,11 +67,14 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Expected usage: taskly edit <id> <value>")
 			os.Exit(1)
 		}
-		var id int
-		fmt.Sscanf(os.Args[2], "%d", &id)
-		new_title := os.Args[3]
+		id, err := parseTaskID(os.Args[2])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		newTitle := os.Args[3]
 
-		_, err := updateTask(id, new_title)
+		_, err = updateTask(id, newTitle)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -76,8 +88,11 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Task ID is Required to Delete")
 			os.Exit(1)
 		}
-		var id int
-		fmt.Sscanf(os.Args[2], "%d", &id)
+		id, err := parseTaskID(os.Args[2])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		if err := deleteTask(id); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while deleting task %d: %v\n", id, err)
 			os.Exit(1)
@@ -88,11 +103,14 @@ func main() {
 		}
 	case cmd == "check":
 		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, "Task ID is Required to Delete")
+			fmt.Fprintln(os.Stderr, "Task ID is required to check a task")
 			os.Exit(1)
 		}
-		var id int
-		fmt.Sscanf(os.Args[2], "%d", &id)
+		id, err := parseTaskID(os.Args[2])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
 		if err := completeTask(id); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while checking the task %d: %v\n", id, err)
 			os.Exit(1)
@@ -103,12 +121,15 @@ func main() {
 		}
 	case cmd == "uncheck":
 		if len(os.Args) != 3 {
-			fmt.Fprintln(os.Stderr, "Task ID is Required to Delete")
+			fmt.Fprintln(os.Stderr, "Task ID is required to uncheck a task")
 			os.Exit(1)
 		}
-		var id int
-		fmt.Sscanf(os.Args[2], "%d", &id)
-		if err := InCompleteTask(id); err != nil {
+		id, err := parseTaskID(os.Args[2])
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if err := incompleteTask(id); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while unchecking the task %d: %v\n", id, err)
 			os.Exit(1)
 		}
@@ -116,6 +137,9 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
+		os.Exit(1)
 	}
 
 }

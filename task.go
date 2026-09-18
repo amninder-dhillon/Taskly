@@ -31,21 +31,19 @@ func getNextTaskID(tasks []Task) int {
 func createTask(title string) (Task, error) {
 	tasks, err := getTasks()
 	if err != nil {
-		fmt.Println(err)
-		fmt.Fprintf(os.Stderr, "Unexpected error while reading the tasks.json file")
 		return Task{}, err
 	}
-	new_task := Task{
+	newTask := Task{
 		ID:          getNextTaskID(tasks),
 		Title:       title,
 		IsCompleted: false,
 	}
-	tasks = append(tasks, new_task)
-	save_err := saveTask(tasks)
-	if save_err != nil {
-		return Task{}, save_err
+	tasks = append(tasks, newTask)
+	saveErr := saveTask(tasks)
+	if saveErr != nil {
+		return Task{}, saveErr
 	}
-	return new_task, nil
+	return newTask, nil
 }
 
 func saveTask(tasks []Task) error {
@@ -85,24 +83,21 @@ func getIndexOfTaskByID(tasks []Task, id int) int {
 	return -1
 }
 
-func updateTask(id int, new_title string) (Task, error) {
-	tasks, getTaskErr := getTasks()
-	if getTaskErr != nil {
-		fmt.Fprintln(os.Stderr, "Error while getting the tasks")
-		return Task{}, getTaskErr
+func updateTask(id int, newTitle string) (Task, error) {
+	tasks, getTasksErr := getTasks()
+	if getTasksErr != nil {
+		return Task{}, getTasksErr
 	}
-	task_index := getIndexOfTaskByID(tasks, id)
-	if task_index == -1 {
-		fmt.Fprintf(os.Stdout, "No task with id %d found", id)
-		err := errors.New("No task with id")
-		return Task{}, err
+	taskIndex := getIndexOfTaskByID(tasks, id)
+	if taskIndex == -1 {
+		return Task{}, fmt.Errorf("no task with ID %d found", id)
 	}
-	tasks[task_index].Title = new_title
+	tasks[taskIndex].Title = newTitle
 
 	if err := saveTask(tasks); err != nil {
 		return Task{}, fmt.Errorf("saving updated task: %w", err)
 	}
-	return tasks[task_index], nil
+	return tasks[taskIndex], nil
 }
 
 func deleteTask(id int) error {
@@ -127,24 +122,14 @@ func deleteTask(id int) error {
 }
 
 func completeTask(id int) error {
-	tasks, err := getTasks()
-	if err != nil {
-		return fmt.Errorf("getting tasks: %w", err)
-	}
-
-	taskIndex := getIndexOfTaskByID(tasks, id)
-
-	if taskIndex == -1 {
-		return fmt.Errorf("no task with ID %d", id)
-	}
-	tasks[taskIndex].IsCompleted = true
-	if err := saveTask(tasks); err != nil {
-		return fmt.Errorf("saving updated task: %w", err)
-	}
-	return nil
+	return setTaskCompletion(id, true)
 }
 
-func InCompleteTask(id int) error {
+func incompleteTask(id int) error {
+	return setTaskCompletion(id, false)
+}
+
+func setTaskCompletion(id int, isCompleted bool) error {
 	tasks, err := getTasks()
 	if err != nil {
 		return fmt.Errorf("getting tasks: %w", err)
@@ -155,7 +140,7 @@ func InCompleteTask(id int) error {
 	if taskIndex == -1 {
 		return fmt.Errorf("no task with ID %d", id)
 	}
-	tasks[taskIndex].IsCompleted = false
+	tasks[taskIndex].IsCompleted = isCompleted
 	if err := saveTask(tasks); err != nil {
 		return fmt.Errorf("saving updated task: %w", err)
 	}

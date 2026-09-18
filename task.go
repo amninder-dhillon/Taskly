@@ -76,17 +76,13 @@ func getTasks() ([]Task, error) {
 	return tasks, err
 }
 
-func getTaskByID(tasks []Task, id int) Task {
-	var filtered []Task
-	for _, task := range tasks {
+func getIndexOfTaskByID(tasks []Task, id int) int {
+	for i, task := range tasks {
 		if task.ID == id {
-			filtered = append(filtered, task)
+			return i
 		}
 	}
-	if len(filtered) == 0 {
-		return Task{}
-	}
-	return filtered[0]
+	return -1
 }
 
 func updateTask(id int, new_title string) (Task, error) {
@@ -95,14 +91,73 @@ func updateTask(id int, new_title string) (Task, error) {
 		fmt.Fprintln(os.Stderr, "Error while getting the tasks")
 		return Task{}, getTaskErr
 	}
-	taskToUpdate := getTaskByID(tasks, id)
-	if taskToUpdate == (Task{}) {
+	task_index := getIndexOfTaskByID(tasks, id)
+	if task_index == -1 {
 		fmt.Fprintf(os.Stdout, "No task with id %d found", id)
 		err := errors.New("No task with id")
 		return Task{}, err
 	}
-	taskToUpdate.Title = new_title
-	fmt.Println(tasks)
-	saveTask(tasks)
-	return taskToUpdate, nil
+	tasks[task_index].Title = new_title
+
+	if err := saveTask(tasks); err != nil {
+		return Task{}, fmt.Errorf("saving updated task: %w", err)
+	}
+	return tasks[task_index], nil
+}
+
+func deleteTask(id int) error {
+	tasks, err := getTasks()
+	if err != nil {
+		return fmt.Errorf("getting tasks: %w", err)
+	}
+
+	taskIndex := getIndexOfTaskByID(tasks, id)
+
+	if taskIndex == -1 {
+		return fmt.Errorf("no task with ID %d", id)
+	}
+
+	tasks = append(tasks[:taskIndex], tasks[taskIndex+1:]...)
+
+	if err := saveTask(tasks); err != nil {
+		return fmt.Errorf("saving tasks after deletion: %w", err)
+	}
+
+	return nil
+}
+
+func completeTask(id int) error {
+	tasks, err := getTasks()
+	if err != nil {
+		return fmt.Errorf("getting tasks: %w", err)
+	}
+
+	taskIndex := getIndexOfTaskByID(tasks, id)
+
+	if taskIndex == -1 {
+		return fmt.Errorf("no task with ID %d", id)
+	}
+	tasks[taskIndex].IsCompleted = true
+	if err := saveTask(tasks); err != nil {
+		return fmt.Errorf("saving updated task: %w", err)
+	}
+	return nil
+}
+
+func InCompleteTask(id int) error {
+	tasks, err := getTasks()
+	if err != nil {
+		return fmt.Errorf("getting tasks: %w", err)
+	}
+
+	taskIndex := getIndexOfTaskByID(tasks, id)
+
+	if taskIndex == -1 {
+		return fmt.Errorf("no task with ID %d", id)
+	}
+	tasks[taskIndex].IsCompleted = false
+	if err := saveTask(tasks); err != nil {
+		return fmt.Errorf("saving updated task: %w", err)
+	}
+	return nil
 }
